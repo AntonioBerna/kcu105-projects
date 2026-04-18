@@ -1,0 +1,4 @@
+# Verilator generated files
+*.vcd
+obj_dir/
+vivado/
