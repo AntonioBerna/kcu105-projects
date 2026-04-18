@@ -1,10 +1,13 @@
 <h1 align="center">
     <br>
-    <img src=".github/imgs/kcu105-board.png" alt="KCU105" width="500">
+    <img src=".github/imgs/kcu105-board.png" alt="KCU105" width="750">
     <br>
     AMD Kintex™ UltraScale™ FPGA KCU105 Evaluation Kit
     <br>
 </h1>
+
+> [!WARNING]
+> This repository is unfinished. Keep your expectations low.
 
 ## Getting Started
 
