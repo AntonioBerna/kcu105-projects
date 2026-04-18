@@ -2,7 +2,7 @@
     <br>
     <img src=".github/imgs/kcu105-board.png" alt="KCU105" width="750">
     <br>
-    AMD Kintex™ UltraScale™ FPGA KCU105 Evaluation Kit
+    KCU105 Evaluation Kit Projects
     <br>
 </h1>
 
