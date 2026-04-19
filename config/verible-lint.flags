@@ -1,0 +1,5 @@
+--ruleset=default
+--rules=-module-filename,-parameter-name-style
+--check_syntax=true
+--parse_fatal=true
+--lint_fatal=true

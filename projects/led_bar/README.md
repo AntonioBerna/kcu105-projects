@@ -6,6 +6,8 @@ Each valid debounced press of the center button turns on one additional user LED
 
 The repository includes the RTL design, board constraints, simulation testbench, and Vivado project/script files needed to build and verify the design.
 
+Tool options for Verilator and Verible are read from the shared configuration directory at `../../config`.
+
 ## Usage
 
 Run these commands from the project directory:
@@ -20,7 +22,7 @@ make run
 # View the waveform dump
 surfer dump.vcd
 
-# Format the code
+# Format, syntax-check, and lint
 make format
 
 # Clean up build and output files
