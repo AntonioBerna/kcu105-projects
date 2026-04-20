@@ -3,7 +3,7 @@
 This project uses the KCU105 rotary encoder in two modes:
 
 1. Volume mode: rotating the encoder lights the 8 GPIO LEDs in sequence as a bar graph.
-2. Brightness mode: pressing SW7 (mapped to GPIO_SW_C) toggles to global brightness control for all active LEDs. Rotating the encoder changes brightness with PWM. Pressing SW7 again returns to volume mode.
+2. Brightness mode: pressing SW7 (GPIO_SW_C) toggles to global brightness control for all active LEDs. The rotary push button (ROTARY_PUSH) can also toggle this mode. Rotating the encoder changes brightness with PWM.
 
 Clock, rotary encoder, and LED pin assignments are provided in constraints/encoder_led_brightness.xdc.
 

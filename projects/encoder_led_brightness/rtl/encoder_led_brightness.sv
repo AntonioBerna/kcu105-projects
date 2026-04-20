@@ -7,6 +7,7 @@ module encoder_led_brightness #(
     input  logic CLK_125MHZ_P,
     input  logic CLK_125MHZ_N,
     input  logic GPIO_SW_C,
+    input  logic ROTARY_PUSH,
     input  logic ROTARY_INCA,
     input  logic ROTARY_INCB,
     output logic GPIO_LED_0_LS,
@@ -44,26 +45,39 @@ module encoder_led_brightness #(
   logic rotb_sync = 1'b0;
   logic sw_meta = 1'b0;
   logic sw_sync = 1'b0;
+  logic rpush_meta = 1'b0;
+  logic rpush_sync = 1'b0;
 
-  logic rota_stable = 1'b0;
-  logic rotb_stable = 1'b0;
-  logic sw_stable = 1'b0;
+  logic mode_btn_sync;
+  logic mode_btn_stable = 1'b0;
+  logic mode_btn_stable_d = 1'b0;
+  logic [DbncCntW-1:0] mode_btn_dbnc_cnt = '0;
 
-  logic rota_stable_d = 1'b0;
-  logic sw_stable_d = 1'b0;
-
-  logic [DbncCntW-1:0] rota_dbnc_cnt = '0;
-  logic [DbncCntW-1:0] rotb_dbnc_cnt = '0;
-  logic [DbncCntW-1:0] sw_dbnc_cnt = '0;
+  logic [1:0] rot_ab_prev = 2'b00;
+  logic [1:0] rot_ab_sync;
+  logic signed [3:0] rot_delta;
+  logic signed [3:0] rot_accum = '0;
+  logic signed [3:0] rot_accum_next;
+  logic rot_step_cw_pulse;
+  logic rot_step_ccw_pulse;
 
   logic mode_brightness = 1'b0;
   logic [3:0] volume_level = '0;
   logic [BRIGHTNESS_BITS-1:0] brightness = BrightnessMax;
   logic [BRIGHTNESS_BITS-1:0] pwm_cnt = '0;
 
+  // Use coarse brightness steps (16 levels by default) so changes are visible.
+  localparam logic [BRIGHTNESS_BITS-1:0] BrightnessStep =
+      (BRIGHTNESS_BITS > 4)
+          ? ({{(BRIGHTNESS_BITS - 1) {1'b0}}, 1'b1} << (BRIGHTNESS_BITS - 4))
+          : {{(BRIGHTNESS_BITS - 1) {1'b0}}, 1'b1};
+
   logic [7:0] volume_mask;
   logic pwm_en;
   logic [7:0] led_mask;
+
+  assign mode_btn_sync = sw_sync | rpush_sync;
+  assign rot_ab_sync   = {rota_sync, rotb_sync};
 
   always_ff @(posedge clk_125mhz) begin
     rota_meta <= ROTARY_INCA;
@@ -72,70 +86,78 @@ module encoder_led_brightness #(
     rotb_meta <= ROTARY_INCB;
     rotb_sync <= rotb_meta;
 
-    sw_meta   <= GPIO_SW_C;
-    sw_sync   <= sw_meta;
+    sw_meta <= GPIO_SW_C;
+    sw_sync <= sw_meta;
+
+    rpush_meta <= ROTARY_PUSH;
+    rpush_sync <= rpush_meta;
   end
 
   always_ff @(posedge clk_125mhz) begin
-    if (rota_sync == rota_stable) begin
-      rota_dbnc_cnt <= '0;
-    end else if (rota_dbnc_cnt == DbncLast) begin
-      rota_stable   <= rota_sync;
-      rota_dbnc_cnt <= '0;
+    if (mode_btn_sync == mode_btn_stable) begin
+      mode_btn_dbnc_cnt <= '0;
+    end else if (mode_btn_dbnc_cnt == DbncLast) begin
+      mode_btn_stable   <= mode_btn_sync;
+      mode_btn_dbnc_cnt <= '0;
     end else begin
-      rota_dbnc_cnt <= rota_dbnc_cnt + 1'b1;
-    end
-
-    if (rotb_sync == rotb_stable) begin
-      rotb_dbnc_cnt <= '0;
-    end else if (rotb_dbnc_cnt == DbncLast) begin
-      rotb_stable   <= rotb_sync;
-      rotb_dbnc_cnt <= '0;
-    end else begin
-      rotb_dbnc_cnt <= rotb_dbnc_cnt + 1'b1;
-    end
-
-    if (sw_sync == sw_stable) begin
-      sw_dbnc_cnt <= '0;
-    end else if (sw_dbnc_cnt == DbncLast) begin
-      sw_stable   <= sw_sync;
-      sw_dbnc_cnt <= '0;
-    end else begin
-      sw_dbnc_cnt <= sw_dbnc_cnt + 1'b1;
+      mode_btn_dbnc_cnt <= mode_btn_dbnc_cnt + 1'b1;
     end
   end
 
+  always_comb begin
+    rot_delta = 4'sd0;
+    case ({
+      rot_ab_prev, rot_ab_sync
+    })
+      4'b0001, 4'b0111, 4'b1110, 4'b1000: rot_delta = 4'sd1;
+      4'b0010, 4'b1011, 4'b1101, 4'b0100: rot_delta = -4'sd1;
+      default: rot_delta = 4'sd0;
+    endcase
+  end
+
+  always_comb begin
+    rot_accum_next = rot_accum + rot_delta;
+    rot_step_cw_pulse = (rot_accum_next >= 4'sd4);
+    rot_step_ccw_pulse = (rot_accum_next <= -4'sd4);
+  end
+
   always_ff @(posedge clk_125mhz) begin
-    rota_stable_d <= rota_stable;
-    sw_stable_d <= sw_stable;
+    mode_btn_stable_d <= mode_btn_stable;
     pwm_cnt <= pwm_cnt + 1'b1;
 
-    if (!sw_stable_d && sw_stable) begin
+    if (rot_step_cw_pulse || rot_step_ccw_pulse) begin
+      rot_accum <= 4'sd0;
+    end else begin
+      rot_accum <= rot_accum_next;
+    end
+    rot_ab_prev <= rot_ab_sync;
+
+    if (!mode_btn_stable_d && mode_btn_stable) begin
       mode_brightness <= ~mode_brightness;
     end
 
-    // One step per debounced rising edge of ROTARY_INCA.
-    // ROTARY_INCB defines the direction at that edge.
-    if (!rota_stable_d && rota_stable) begin
+    if (rot_step_cw_pulse) begin
       if (!mode_brightness) begin
-        if (rotb_stable) begin
-          if (volume_level < 4'd8) begin
-            volume_level <= volume_level + 1'b1;
-          end
-        end else begin
-          if (volume_level > 4'd0) begin
-            volume_level <= volume_level - 1'b1;
-          end
+        if (volume_level < 4'd8) begin
+          volume_level <= volume_level + 1'b1;
         end
       end else begin
-        if (rotb_stable) begin
-          if (brightness < BrightnessMax) begin
-            brightness <= brightness + 1'b1;
-          end
+        if (brightness <= (BrightnessMax - BrightnessStep)) begin
+          brightness <= brightness + BrightnessStep;
         end else begin
-          if (brightness > '0) begin
-            brightness <= brightness - 1'b1;
-          end
+          brightness <= BrightnessMax;
+        end
+      end
+    end else if (rot_step_ccw_pulse) begin
+      if (!mode_brightness) begin
+        if (volume_level > 4'd0) begin
+          volume_level <= volume_level - 1'b1;
+        end
+      end else begin
+        if (brightness >= BrightnessStep) begin
+          brightness <= brightness - BrightnessStep;
+        end else begin
+          brightness <= '0;
         end
       end
     end

@@ -5,6 +5,7 @@ module tb;
   logic clk_n;
 
   logic gpio_sw_c;
+  logic rotary_push;
   logic rotary_inca;
   logic rotary_incb;
 
@@ -25,7 +26,8 @@ module tb;
   ) dut (
       .CLK_125MHZ_P (clk_p),
       .CLK_125MHZ_N (clk_n),
-      .GPIO_SW_C   (gpio_sw_c),
+      .GPIO_SW_C    (gpio_sw_c),
+      .ROTARY_PUSH  (rotary_push),
       .ROTARY_INCA  (rotary_inca),
       .ROTARY_INCB  (rotary_incb),
       .GPIO_LED_0_LS(gpio_led_0_ls),
@@ -60,6 +62,14 @@ module tb;
     end
   endtask
 
+  task automatic set_rotary_state_fast(input logic a, input logic b);
+    begin
+      rotary_inca = a;
+      rotary_incb = b;
+      @(posedge clk_p);
+    end
+  endtask
+
   // Clockwise sequence: 00 -> 01 -> 11 -> 10 -> 00
   task automatic encoder_step_cw;
     begin
@@ -82,11 +92,40 @@ module tb;
     end
   endtask
 
+  task automatic encoder_step_cw_fast;
+    begin
+      set_rotary_state_fast(1'b0, 1'b0);
+      set_rotary_state_fast(1'b0, 1'b1);
+      set_rotary_state_fast(1'b1, 1'b1);
+      set_rotary_state_fast(1'b1, 1'b0);
+      set_rotary_state_fast(1'b0, 1'b0);
+    end
+  endtask
+
+  task automatic encoder_step_ccw_fast;
+    begin
+      set_rotary_state_fast(1'b0, 1'b0);
+      set_rotary_state_fast(1'b1, 1'b0);
+      set_rotary_state_fast(1'b1, 1'b1);
+      set_rotary_state_fast(1'b0, 1'b1);
+      set_rotary_state_fast(1'b0, 1'b0);
+    end
+  endtask
+
   task automatic click_sw7;
     begin
       gpio_sw_c = 1'b1;
       repeat (10) @(posedge clk_p);
       gpio_sw_c = 1'b0;
+      repeat (10) @(posedge clk_p);
+    end
+  endtask
+
+  task automatic click_rotary_push;
+    begin
+      rotary_push = 1'b1;
+      repeat (10) @(posedge clk_p);
+      rotary_push = 1'b0;
       repeat (10) @(posedge clk_p);
     end
   endtask
@@ -109,6 +148,7 @@ module tb;
 
     clk_p = 1'b0;
     gpio_sw_c = 1'b0;
+    rotary_push = 1'b0;
     rotary_inca = 1'b0;
     rotary_incb = 1'b0;
 
@@ -120,6 +160,17 @@ module tb;
 
     if (leds !== 8'h00) begin
       $fatal(1, "Startup: expected LEDs=00000000, got=%b", leds);
+    end
+
+    // Stress test for fast rotation.
+    repeat (12) encoder_step_cw_fast();
+    if (leds !== 8'hFF) begin
+      $fatal(1, "Fast CW: expected saturation to 11111111, got=%b", leds);
+    end
+
+    repeat (12) encoder_step_ccw_fast();
+    if (leds !== 8'h00) begin
+      $fatal(1, "Fast CCW: expected floor to 00000000, got=%b", leds);
     end
 
     repeat (3) encoder_step_cw();
@@ -150,7 +201,7 @@ module tb;
       $fatal(1, "Brightness mode: expected full brightness (16/16), got %0d/16", led0_high);
     end
 
-    click_sw7();
+    click_rotary_push();
 
     repeat (7) encoder_step_cw();
     if (leds !== 8'hFF) begin

@@ -10,6 +10,8 @@ create_clock -name clk_125mhz -period 8.000 [get_ports "CLK_125MHZ_P"]
 # SW7 mode toggle and rotary encoder channels
 set_property PACKAGE_PIN AE10 [get_ports "GPIO_SW_C"]
 set_property IOSTANDARD LVCMOS18 [get_ports "GPIO_SW_C"]
+set_property PACKAGE_PIN AF28 [get_ports "ROTARY_PUSH"]
+set_property IOSTANDARD LVCMOS18 [get_ports "ROTARY_PUSH"]
 set_property PACKAGE_PIN Y21 [get_ports "ROTARY_INCA"]
 set_property IOSTANDARD LVCMOS18 [get_ports "ROTARY_INCA"]
 set_property PACKAGE_PIN AD26 [get_ports "ROTARY_INCB"]
