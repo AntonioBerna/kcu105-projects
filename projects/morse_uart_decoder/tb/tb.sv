@@ -12,7 +12,7 @@ module tb;
   logic clk_p;
   logic clk_n;
   logic gpio_sw_c;
-  logic usb_uart_tx;
+  logic usb_uart_rx;
 
   logic [7:0] rx_data[ExpectedBytes];
   logic [7:0] expected[ExpectedBytes];
@@ -29,7 +29,7 @@ module tb;
       .CLK_125MHZ_P(clk_p),
       .CLK_125MHZ_N(clk_n),
       .GPIO_SW_C(gpio_sw_c),
-      .USB_UART_TX(usb_uart_tx)
+      .USB_UART_RX(usb_uart_rx)
   );
 
   assign clk_n = ~clk_p;
@@ -216,15 +216,15 @@ module tb;
     int i;
     begin
       byte_out = 8'h00;
-      @(negedge usb_uart_tx);
+      @(negedge usb_uart_rx);
       repeat (UartClksPerBit + (UartClksPerBit / 2)) @(posedge clk_p);
 
       for (i = 0; i < 8; i++) begin
-        byte_out[i] = usb_uart_tx;
+        byte_out[i] = usb_uart_rx;
         repeat (UartClksPerBit) @(posedge clk_p);
       end
 
-      if (usb_uart_tx !== 1'b1) begin
+      if (usb_uart_rx !== 1'b1) begin
         $fatal(1, "UART stop bit error");
       end
     end

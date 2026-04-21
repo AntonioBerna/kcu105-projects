@@ -11,7 +11,7 @@ module morse_uart_decoder #(
     input  logic CLK_125MHZ_P,
     input  logic CLK_125MHZ_N,
     input  logic GPIO_SW_C,
-    output logic USB_UART_TX
+  output logic USB_UART_RX
 );
 
   logic clk_125mhz;
@@ -235,7 +235,7 @@ module morse_uart_decoder #(
       .clk(clk_125mhz),
       .start(uart_start),
       .data(uart_data),
-      .tx(USB_UART_TX),
+      .tx(USB_UART_RX),
       .busy(uart_busy)
   );
 

@@ -2,7 +2,9 @@
 
 This project uses SW7 (GPIO_SW_C) on the AMD KCU105 as a Morse key input.
 
-The FPGA measures press and pause durations, decodes Morse symbols into plaintext letters, and streams the decoded text in real time through USB UART TX at 115200 baud (8N1).
+The FPGA measures press and pause durations, decodes Morse symbols into plaintext letters, and streams the decoded text in real time at 115200 baud (8N1).
+
+Note on KCU105 naming: the FPGA transmitter drives the board net `USB_UART_RX` (pin K26), which connects to the CP2105 `RXD` input.
 
 Clock, switch, and UART pin assignments are provided in `constraints/morse_uart_decoder.xdc`.
 
