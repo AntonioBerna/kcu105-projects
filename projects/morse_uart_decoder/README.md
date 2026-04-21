@@ -1,6 +1,6 @@
 <h1 align="center">
     <br>
-    <img src=".github/imgs/morse-code.jpg" alt="Morse Code" width="600">
+    <img src="../../.github/imgs/morse-code.jpg" alt="Morse Code" width="600">
     <br>
     Morse UART Decoder (SW7)
     <br>
