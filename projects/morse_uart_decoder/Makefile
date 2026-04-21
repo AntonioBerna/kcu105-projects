@@ -11,7 +11,7 @@ VERIBLE_LINT_FLAGS_FILE ?= $(CONFIG_DIR)/verible-lint.flags
 
 VERILATOR_FLAGS ?= --sv -Wno-fatal
 STOP_NS ?= 500000
-BUILD_SRC := rtl/morse_uart_decoder.sv tb/tb.sv
+BUILD_SRC := $(wildcard rtl/*.sv) tb/tb.sv
 ALL_SRC := $(wildcard rtl/*.sv) $(wildcard tb/*.sv) $(wildcard tb/*/*.sv)
 TARGET := tb
 BINARY := obj_dir/V$(TARGET)

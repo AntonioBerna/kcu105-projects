@@ -20,12 +20,16 @@ if {[llength $argv] >= 2 && [string length [lindex $argv 1]] > 0} {
 }
 
 set proj_dir [file normalize [file join $origin_dir vivado $proj_name]]
-set rtl_file [file normalize [file join $origin_dir rtl morse_uart_decoder.sv]]
+set rtl_top_file [file normalize [file join $origin_dir rtl morse_uart_decoder.sv]]
+set rtl_uart_file [file normalize [file join $origin_dir rtl uart_tx.sv]]
 set tb_top_file [file normalize [file join $origin_dir tb tb.sv]]
 set xdc_file [file normalize [file join $origin_dir constraints morse_uart_decoder.xdc]]
 
-if {![file exists $rtl_file]} {
-  error "RTL file not found: $rtl_file"
+if {![file exists $rtl_top_file]} {
+  error "RTL top file not found: $rtl_top_file"
+}
+if {![file exists $rtl_uart_file]} {
+  error "RTL UART file not found: $rtl_uart_file"
 }
 if {![file exists $tb_top_file]} {
   error "TB file not found: $tb_top_file"
@@ -42,8 +46,10 @@ set_property target_language Verilog [current_project]
 set_property simulator_language Mixed [current_project]
 
 # Design sources
-add_files -fileset sources_1 -norecurse $rtl_file
-set_property file_type {SystemVerilog} [get_files $rtl_file]
+add_files -fileset sources_1 -norecurse $rtl_top_file
+add_files -fileset sources_1 -norecurse $rtl_uart_file
+set_property file_type {SystemVerilog} [get_files $rtl_top_file]
+set_property file_type {SystemVerilog} [get_files $rtl_uart_file]
 set_property top morse_uart_decoder [get_filesets sources_1]
 
 # Simulation sources
